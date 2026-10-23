@@ -84,16 +84,17 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+
+ // POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!user) {
-  return res.status(404).json({
-    message: "Account not found. Please sign up.",
-  });
-}
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -101,12 +102,14 @@ router.post("/login", async (req, res) => {
       where: { email: normalizedEmail },
     });
 
+    // Check whether the account exists first
     if (!user) {
-      return res.status(401).json({
-        message: "Invalid email or password",
+      return res.status(404).json({
+        message: "Account not found. Please sign up.",
       });
     }
 
+    // Then verify the password
     const passwordMatches = await bcrypt.compare(
       password,
       user.passwordHash
@@ -119,7 +122,10 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, organizationId: user.organizationId },
+      {
+        userId: user.id,
+        organizationId: user.organizationId,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -141,5 +147,6 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;
