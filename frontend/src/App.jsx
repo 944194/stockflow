@@ -68,6 +68,7 @@ export default function App() {
   const [dashboard, setDashboard] = useState(null);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [page, setPage] = useState("Dashboard");
   const [form, setForm] = useState(emptyForm);
 
@@ -182,6 +183,73 @@ export default function App() {
       setSaving(false);
     }
   }
+
+
+function openAddForm() {
+  setEditingId(null);
+  setForm(emptyForm);
+  setShowForm(true);
+  setPage("Products");
+  setError("");
+  setNotice("");
+}
+
+
+  
+function startEdit(product) {
+  setEditingId(product.id);
+  setForm({
+    name: product.name,
+    sku: product.sku,
+    quantity: String(product.quantity),
+    costPrice: product.costPrice ?? "",
+    sellingPrice: product.sellingPrice ?? "",
+    lowStockThreshold: String(product.lowStockThreshold ?? 5),
+  });
+  setShowForm(true);
+  setPage("Products");
+  setError("");
+  setNotice("");
+}
+
+async function saveProduct(e) {
+  e.preventDefault();
+  setSaving(true);
+  setError("");
+  setNotice("");
+
+  try {
+    const payload = {
+      name: form.name.trim(),
+      sku: form.sku.trim(),
+      quantity: Number(form.quantity),
+      costPrice: form.costPrice === "" ? null : Number(form.costPrice),
+      sellingPrice:
+        form.sellingPrice === "" ? null : Number(form.sellingPrice),
+      lowStockThreshold: Number(form.lowStockThreshold || 5),
+    };
+
+    const result = await apiRequest(
+      `/api/products/${editingId}`,
+      token,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    );
+
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+    setNotice(result.message || "Product updated successfully.");
+    await loadData(token);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setSaving(false);
+  }
+}
+
 
   async function deleteProduct(id) {
     if (!window.confirm("Delete this product?")) return;
@@ -397,10 +465,7 @@ export default function App() {
                 </div>
                 <button
                   className="primary-button"
-                  onClick={() => {
-                    setPage("Products");
-                    setShowForm(true);
-                  }}
+                   onClick={openAddForm}
                 >
                   <Plus size={18} /> Add Product
                 </button>
@@ -500,15 +565,24 @@ export default function App() {
                 </div>
                 <button
                   className="primary-button"
-                  onClick={() => setShowForm(!showForm)}
+                  onClick={() => {
+  if (showForm && editingId === null) {
+    setShowForm(false);
+  } else {
+    openAddForm();
+  }
+}}
                 >
                   <Plus size={18} /> Add Product
                 </button>
               </div>
 
               {showForm && (
-                <form className="panel product-form" onSubmit={addProduct}>
-                  <h2>Add New Product</h2>
+                <form
+  className="panel product-form"
+  onSubmit={editingId !== null ? saveProduct : addProduct}
+>
+  <h2>{editingId !== null ? "Edit Product" : "Add New Product"}</h2>
 
                   <div className="form-grid">
                     {[
@@ -540,14 +614,19 @@ export default function App() {
                       type="button"
                       className="secondary-button"
                       onClick={() => {
-                        setShowForm(false);
-                        setForm(emptyForm);
-                      }}
+  setShowForm(false);
+  setEditingId(null);
+  setForm(emptyForm);
+}}
                     >
                       Cancel
                     </button>
                     <button className="primary-button" type="submit" disabled={saving}>
-                      {saving ? "Saving..." : "Save Product"}
+                      {saving
+  ? "Saving..."
+  : editingId !== null
+    ? "Update Product"
+    : "Save Product"}
                     </button>
                   </div>
                 </form>
@@ -604,14 +683,23 @@ export default function App() {
                                   : "In stock"}
                               </span>
                             </td>
-                            <td>
-                              <button
-                                className="delete-button"
-                                onClick={() => deleteProduct(p.id)}
-                              >
-                                Delete
-                              </button>
-                            </td>
+                            
+<td>
+  <button
+    className="secondary-button"
+    onClick={() => startEdit(p)}
+  >
+    Edit
+  </button>
+  {" "}
+  <button
+    className="delete-button"
+    onClick={() => deleteProduct(p.id)}
+  >
+    Delete
+  </button>
+</td>
+
                           </tr>
                         ))}
                       </tbody>
