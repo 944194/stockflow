@@ -402,7 +402,11 @@ async function saveProduct(e) {
           <button
             key={name}
             className={`nav-item ${page === name ? "active" : ""}`}
-            onClick={() => setPage(name)}
+            onClick={() => {
+  setPage(name);
+  setNotice("");
+  setError("");
+}}
           >
             <Icon size={19} /> {name}
           </button>
