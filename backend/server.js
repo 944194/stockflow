@@ -7,6 +7,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://stockflow-eta-three.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
