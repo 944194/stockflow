@@ -46,7 +46,7 @@ const emptyForm = {
   quantity: "",
   costPrice: "",
   sellingPrice: "",
-  lowStockThreshold: "5",
+  lowStockThreshold: "",
 };
 
 export default function App() {
@@ -76,6 +76,26 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const [defaultLowStockThreshold, setDefaultLowStockThreshold] =
+  useState(() => {
+    const saved = localStorage.getItem("stockflowDefaultLowStockThreshold");
+    return saved === null ? 5 : Number(saved);
+  });
+
+
+function saveDefaultLowStockThreshold() {
+  const value = Number(defaultLowStockThreshold);
+
+  if (!Number.isInteger(value) || value < 0) {
+    setError("Enter a valid threshold (0 or greater).");
+    return;
+  }
+
+  localStorage.setItem("stockflowDefaultLowStockThreshold", String(value));
+  setNotice("Default low-stock threshold saved successfully.");
+  setError("");
+}
 
   const logout = useCallback(() => {
     localStorage.removeItem("stockflow_token");
@@ -169,7 +189,8 @@ export default function App() {
           costPrice: form.costPrice === "" ? null : Number(form.costPrice),
           sellingPrice:
             form.sellingPrice === "" ? null : Number(form.sellingPrice),
-          lowStockThreshold: Number(form.lowStockThreshold || 5),
+          lowStockThreshold:
+  form.lowStockThreshold === "" ? null : Number(form.lowStockThreshold),
         }),
       });
 
@@ -204,7 +225,9 @@ function startEdit(product) {
     quantity: String(product.quantity),
     costPrice: product.costPrice ?? "",
     sellingPrice: product.sellingPrice ?? "",
-    lowStockThreshold: String(product.lowStockThreshold ?? 5),
+    lowStockThreshold: product.lowStockThreshold == null
+  ? ""
+  : String(product.lowStockThreshold),
   });
   setShowForm(true);
   setPage("Products");
@@ -226,7 +249,8 @@ async function saveProduct(e) {
       costPrice: form.costPrice === "" ? null : Number(form.costPrice),
       sellingPrice:
         form.sellingPrice === "" ? null : Number(form.sellingPrice),
-      lowStockThreshold: Number(form.lowStockThreshold || 5),
+      lowStockThreshold:
+  form.lowStockThreshold === "" ? null : Number(form.lowStockThreshold),
     };
 
     const result = await apiRequest(
@@ -269,12 +293,12 @@ async function saveProduct(e) {
     }
   }
 
-  const lowStock = products.filter(
-    (p) =>
-      p.lowStockThreshold !== null &&
-      p.lowStockThreshold !== undefined &&
-      p.quantity <= p.lowStockThreshold
-  );
+  const lowStock = products.filter((p) => {
+  const threshold =
+    p.lowStockThreshold ?? Number(defaultLowStockThreshold);
+
+  return p.quantity <= threshold;
+});
 
   const totalUnits = products.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -545,7 +569,7 @@ async function saveProduct(e) {
                             <td><strong>{p.name}</strong></td>
                             <td>{p.sku}</td>
                             <td>{p.quantity}</td>
-                            <td>{p.lowStockThreshold}</td>
+                            <td>{p.lowStockThreshold ?? defaultLowStockThreshold}</td>
                             <td><span className="status low">Low stock</span></td>
                           </tr>
                         ))}
@@ -674,18 +698,18 @@ async function saveProduct(e) {
                             </td>
                             <td>
                               <span
-                                className={`status ${
-                                  p.lowStockThreshold != null &&
-                                  p.quantity <= p.lowStockThreshold
-                                    ? "low"
-                                    : "good"
-                                }`}
-                              >
-                                {p.lowStockThreshold != null &&
-                                p.quantity <= p.lowStockThreshold
-                                  ? "Low stock"
-                                  : "In stock"}
-                              </span>
+  className={`status ${
+    p.quantity <=
+    (p.lowStockThreshold ?? Number(defaultLowStockThreshold))
+      ? "low"
+      : "good"
+  }`}
+>
+  {p.quantity <=
+  (p.lowStockThreshold ?? Number(defaultLowStockThreshold))
+    ? "Low stock"
+    : "In stock"}
+</span>
                             </td>
                             
 <td>
@@ -720,21 +744,57 @@ async function saveProduct(e) {
             </>
           )}
 
-          {page === "Settings" && (
-            <section className="panel settings-panel">
-              <p className="eyebrow">PREFERENCES</p>
-              <h1>Settings</h1>
-              <p className="muted">Your StockFlow account</p>
-              <p>Signed in as: <strong>{user?.email}</strong></p>
-              <p>Organization ID: <strong>{user?.organizationId}</strong></p>
-              <p className="muted">
-                Each product can have its own low-stock threshold.
-              </p>
-              <button className="secondary-button" onClick={logout}>
-                <LogOut size={16} /> Log out
-              </button>
-            </section>
-          )}
+          
+{page === "Settings" && (
+  <section className="panel settings-panel">
+    <p className="eyebrow">PREFERENCES</p>
+    <h1>Settings</h1>
+    <p className="muted">Your StockFlow account</p>
+
+    <p>
+      Signed in as: <strong>{user?.email}</strong>
+    </p>
+    <p>
+      Organization ID: <strong>{user?.organizationId}</strong>
+    </p>
+
+    <div>
+      <label htmlFor="defaultLowStockThreshold">
+        Default Low Stock Threshold
+      </label>
+
+      <p className="muted">
+        Used when a product has no individual threshold.
+      </p>
+
+      <input
+        id="defaultLowStockThreshold"
+        type="number"
+        min="0"
+        step="1"
+        value={defaultLowStockThreshold}
+        onChange={(e) =>
+          setDefaultLowStockThreshold(
+            e.target.value === "" ? "" : Number(e.target.value)
+          )
+        }
+      />
+
+      <button
+        type="button"
+        className="primary-button"
+        onClick={saveDefaultLowStockThreshold}
+      >
+        Save Settings
+      </button>
+    </div>
+
+    <button className="secondary-button" onClick={logout}>
+      <LogOut size={16} /> Log out
+    </button>
+  </section>
+)}
+
         </section>
       </main>
     </div>
