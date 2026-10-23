@@ -89,11 +89,11 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email and password are required",
-      });
-    }
+    if (!user) {
+  return res.status(404).json({
+    message: "Account not found. Please sign up.",
+  });
+}
 
     const normalizedEmail = email.trim().toLowerCase();
 
