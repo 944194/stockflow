@@ -27,6 +27,9 @@ app.use("/api/auth", authRoutes);
 const productRoutes = require("./routes/products");
 app.use("/api/products", productRoutes);
 
+const dashboardRoutes = require("./routes/dashboard");
+app.use("/api/dashboard", dashboardRoutes);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
