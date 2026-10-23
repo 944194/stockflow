@@ -11,6 +11,7 @@ import {
   Boxes,
   DollarSign,
   Menu,
+  X,
   LogOut,
   RefreshCw,
 } from "lucide-react";
@@ -47,6 +48,7 @@ const emptyForm = {
 };
 
 export default function App() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [token, setToken] = useState(
     () => localStorage.getItem("stockflow_token") || ""
   );
@@ -404,13 +406,33 @@ async function saveProduct(e) {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="sidebar-overlay"
+          aria-label="Close navigation"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside
+        id="mobile-navigation"
+        className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}
+      >
         <div className="brand">
           <div className="brand-icon"><Boxes size={24} /></div>
-          <div>
+          <div className="brand-text">
             <strong>StockFlow</strong>
             <small>INVENTORY CONTROL</small>
           </div>
+          <button
+            type="button"
+            className="sidebar-close"
+            aria-label="Close navigation"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <X size={22} />
+          </button>
         </div>
 
         <p className="nav-label">WORKSPACE</p>
@@ -424,10 +446,11 @@ async function saveProduct(e) {
             key={name}
             className={`nav-item ${page === name ? "active" : ""}`}
             onClick={() => {
-  setPage(name);
-  setNotice("");
-  setError("");
-}}
+              setPage(name);
+              setNotice("");
+              setError("");
+              setMobileMenuOpen(false);
+            }}
           >
             <Icon size={19} /> {name}
           </button>
@@ -455,11 +478,14 @@ async function saveProduct(e) {
       <main className="main-content">
         <header className="topbar">
           <button
+            type="button"
             className="mobile-menu"
             aria-label="Open menu"
-            onClick={() => setPage("Products")}
+            aria-controls="mobile-navigation"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen(true)}
           >
-            <Menu />
+            <Menu size={22} />
           </button>
           <div className="breadcrumb">
             Workspace / <strong>{page}</strong>
